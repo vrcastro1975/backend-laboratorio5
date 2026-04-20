@@ -2,7 +2,7 @@
 
 Este repositorio contiene la base del laboratorio 5 y el trabajo organizado por ramas.
 
-Estado actual de este documento: rama `despliegue-manual-mock`.
+Estado actual de este documento: rama `despliegue-manual-mongo`.
 
 ## 1) Objetivo de la rama `despliegue-manual-mock`
 
@@ -207,5 +207,123 @@ Nota:
 
 ## 10) Continuidad en ramas siguientes
 
-- `despliegue-manual-mongo`: configuración de MongoDB Atlas y conexión desde Render.
 - `despliegue-automatico`: preparación de despliegue automático.
+
+## 11) Rama `despliegue-manual-mongo` (Atlas + Render)
+
+Según se desprende del enunciado, en esta rama se debe usar MongoDB Atlas como base de datos de producción, insertar datos distintos de los mock mediante un `console-runner` y desplegar en una aplicación Render diferente.
+
+### 11.1 Preparar MongoDB Atlas
+
+1. Crear cluster y base de datos en Atlas.
+2. Crear usuario de base de datos con permisos de lectura/escritura.
+3. Configurar `Network Access` para permitir conexión desde Render (y, si procede, desde local para ejecutar el runner).
+4. Copiar la URI de conexión.
+
+Guía detallada en Atlas:
+
+1. Entrar en [MongoDB Atlas](https://www.mongodb.com/atlas/database) y abrir el proyecto.
+2. Ir a `Database` y crear un cluster (plan gratuito si aplica).
+3. Ir a `Security` -> `Database and network access` -> `Add New Database User`.
+4. En el formulario del usuario:
+   - **Authentication Method**: `Password`.
+   - **Username**: un nombre técnico, por ejemplo `render_app_user`.
+   - **Password**: contraseña robusta y guardada en un gestor seguro.
+   - **Description**: opcional (por ejemplo `Usuario para despliegue manual mongo`).
+   - **Privileges**: para esta práctica, `Read and write to any database` (equivale a `readWriteAnyDatabase`).
+5. Guardar el usuario.
+6. En la misma sección de seguridad (`Database and network access`), ir al bloque de red y añadir acceso:
+   - `0.0.0.0/0` temporalmente para pruebas, o
+   - IPs concretas si se quiere mayor restricción.
+7. Volver a `Database` -> `Connect` -> `Drivers`.
+8. Copiar la URI `mongodb+srv://...` y reemplazar `<username>` y `<password>`.
+
+### 11.2 Configurar entorno local para ejecutar el runner
+
+En `.env`:
+
+```env
+DATA_SOURCE=mongo
+MONGO_URI=mongodb+srv://<usuario>:<password>@<cluster-url>/?retryWrites=true&w=majority
+MONGO_DB_NAME=airbnb
+```
+
+### 11.3 Insertar datos en Atlas con console-runner
+
+Se ha implementado el runner:
+
+- `backend/src/console-runners/seed-atlas.runner.ts`
+
+Y el script npm:
+
+```bash
+cd backend
+npm run seed:atlas
+```
+
+Comportamiento del runner:
+
+- valida que exista `MONGO_URI`,
+- conecta a Atlas con `MONGO_DB_NAME`,
+- elimina los documentos existentes de `listingsAndReviews`,
+- inserta un dataset de ejemplo distinto del modo mock.
+
+Ejecución recomendada desde la raíz del laboratorio (cargando variables desde `.env`):
+
+```bash
+set -a
+source .env
+set +a
+cd backend
+npm run seed:atlas
+```
+
+Salida esperada:
+
+```text
+Seed de Atlas completado. Insertados 3 documentos en 'airbnb'.
+```
+
+### 11.4 Configurar una aplicación Render nueva para esta rama
+
+En Render, crear un `Web Service` nuevo con:
+
+- **Branch**: `despliegue-manual-mongo`
+- **Root Directory**: `backend`
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start`
+
+Variables de entorno:
+
+- `DATA_SOURCE=mongo`
+- `MONGO_URI=<uri-atlas>`
+- `MONGO_DB_NAME=airbnb`
+
+Opcional:
+
+- `PORT=10000` (Render suele inyectar el puerto automáticamente).
+
+### 11.5 Verificación funcional
+
+Comprobar en la URL pública del nuevo servicio:
+
+```bash
+curl -s "https://TU-SERVICIO-MONGO.onrender.com/api/health"
+curl -s "https://TU-SERVICIO-MONGO.onrender.com/api/listings?page=1&pageSize=5"
+```
+
+Resultado esperado:
+
+- respuesta correcta en `health`,
+- respuesta de `listings` con los datos insertados en Atlas por el runner.
+
+### 11.6 Checklist operativo recomendado
+
+Orden recomendado de ejecución:
+
+1. Confirmar acceso a Atlas (usuario + red + URI).
+2. Ejecutar `npm run seed:atlas` en local.
+3. Verificar en Atlas que existen documentos en `listingsAndReviews`.
+4. Crear servicio nuevo en Render para `despliegue-manual-mongo`.
+5. Configurar variables (`DATA_SOURCE`, `MONGO_URI`, `MONGO_DB_NAME`).
+6. Desplegar y validar endpoints públicos.
