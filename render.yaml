@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: backend-laboratorio5-automatico
+    runtime: node
+    region: frankfurt
+    plan: free
+    branch: despliegue-automatico
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATA_SOURCE
+        value: mongo
+      - key: MONGO_DB_NAME
+        value: airbnb
+      - key: MONGO_URI
+        sync: false

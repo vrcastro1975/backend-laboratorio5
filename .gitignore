@@ -3,6 +3,7 @@
 !.gitignore
 !.env.example
 !README.md
+!render.yaml
 !compose.yaml
 !restore-airbnb-backup.sh
 !*.png

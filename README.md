@@ -2,7 +2,7 @@
 
 Este repositorio contiene la base del laboratorio 5 y el trabajo organizado por ramas.
 
-Estado actual de este documento: rama `despliegue-manual-mongo`.
+Estado actual de este documento: rama `despliegue-automatico`.
 
 ## 1) Objetivo de la rama `despliegue-manual-mock`
 
@@ -13,6 +13,7 @@ Según se desprende del enunciado, en esta rama se debe desplegar manualmente la
 - `backend/`: API REST en Node.js + TypeScript.
 - `frontend/`: frontend estático servido por el backend.
 - `compose.yaml`: entorno local con backend, mongo, localstack y azurite.
+- `render.yaml`: definición Blueprint de Render para la rama `despliegue-automatico`.
 - `.env.example`: variables de entorno de referencia.
 - `localstack/` y `azurite/`: persistencia local de simuladores cloud.
 
@@ -207,7 +208,7 @@ Nota:
 
 ## 10) Continuidad en ramas siguientes
 
-- `despliegue-automatico`: preparación de despliegue automático.
+- `despliegue-automatico`: despliegue automático con Blueprint (`render.yaml`). Ver sección 12.
 
 ## 11) Rama `despliegue-manual-mongo` (Atlas + Render)
 
@@ -340,3 +341,50 @@ Orden recomendado de ejecución:
 4. Crear servicio nuevo en Render para `despliegue-manual-mongo`.
 5. Configurar variables (`DATA_SOURCE`, `MONGO_URI`, `MONGO_DB_NAME`).
 6. Desplegar y validar endpoints públicos.
+
+## 12) Rama `despliegue-automatico` (Blueprint Render + MongoDB Atlas)
+
+Según se desprende del enunciado, en esta rama se debe crear una aplicación Render distinta, conectar con el MongoDB Atlas ya preparado y versionar los ficheros necesarios para un despliegue automático.
+
+### 12.1 Fichero `render.yaml`
+
+En la raíz del repositorio existe `render.yaml`, que define un servicio web Node:
+
+- **Nombre del servicio**: `backend-laboratorio5-automatico`
+- **Rama**: `despliegue-automatico`
+- **Región**: `frankfurt`
+- **Plan**: `free`
+- **Root Directory**: `backend`
+- **Build**: `npm install && npm run build`
+- **Start**: `npm start`
+- **Variables**:
+  - `DATA_SOURCE=mongo`
+  - `MONGO_DB_NAME=airbnb`
+  - `MONGO_URI` con `sync: false` (Render pedirá el valor en el panel; no debe escribirse la URI en el repositorio).
+
+Referencia oficial: [Blueprint YAML (Render)](https://render.com/docs/blueprint-spec).
+
+### 12.2 Pasos en Render (despliegue automático)
+
+1. Hacer `git push` de la rama `despliegue-automatico` para que GitHub contenga `render.yaml`.
+2. En [Render Dashboard](https://dashboard.render.com/), crear un recurso desde Blueprint (menú equivalente a *New* → *Blueprint* o *Infrastructure as Code*, según la interfaz actual).
+3. Conectar el mismo repositorio de GitHub y seleccionar la rama `despliegue-automatico`.
+4. Aplicar el blueprint: Render detectará `render.yaml` en la raíz.
+5. Cuando se solicite, introducir el valor de **`MONGO_URI`** (cadena `mongodb+srv://...` de Atlas). No compartir esa cadena en el repositorio ni en capturas sin censurar.
+6. Esperar a que el servicio quede en estado `Live`.
+
+### 12.3 Verificación
+
+Sustituir `TU-SERVICIO-AUTOMATICO` por la URL que asigne Render (dominio `onrender.com`):
+
+```bash
+curl -s "https://TU-SERVICIO-AUTOMATICO.onrender.com/api/health"
+curl -s "https://TU-SERVICIO-AUTOMATICO.onrender.com/api/listings?page=1&pageSize=5"
+```
+
+Resultado esperado: mismos datos que en Atlas (sembrados con `npm run seed:atlas` en la rama anterior), no datos mock.
+
+### 12.4 Evidencias recomendadas
+
+- Captura del blueprint aplicado o del servicio `backend-laboratorio5-automatico` en estado `Live`.
+- Salida de los `curl` anteriores (sin exponer `MONGO_URI`).
