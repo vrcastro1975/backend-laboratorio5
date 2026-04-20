@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laboratorio 5 Cloud API REST</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>Laboratorio 5 - Cloud</h1>
+        <p>Frontend opcional para validar endpoints desde el navegador.</p>
+      </header>
+
+      <section class="card">
+        <h2>Autenticación (opcional - práctica de clase)</h2>
+        <div class="credentials-box">
+          <p><strong>Usuario estándar:</strong> usuario / 123</p>
+          <p><strong>Usuario administrador:</strong> admin / admin123</p>
+        </div>
+        <form id="login-form" class="row">
+          <label>
+            Usuario
+            <input id="login-username" type="text" value="usuario" required />
+          </label>
+          <label>
+            Contraseña
+            <input
+              id="login-password"
+              type="password"
+              value=""
+              autocomplete="new-password"
+              required
+            />
+          </label>
+          <button type="submit">Login</button>
+          <button id="logout-button" type="button">Logout</button>
+        </form>
+        <p id="auth-status" class="muted">Sin sesión activa.</p>
+      </section>
+
+      <div id="app-sections" class="hidden">
+      <section class="card">
+        <h2>Listado de alojamientos</h2>
+        <form id="search-form" class="row">
+          <label>
+            País
+            <input id="country" type="text" placeholder="Ej: Spain" />
+          </label>
+          <label>
+            Página
+            <input id="page" type="number" min="1" value="1" />
+          </label>
+          <label>
+            Tamaño de página
+            <input id="page-size" type="number" min="1" max="50" value="5" />
+          </label>
+          <button type="submit">Buscar</button>
+        </form>
+        <p id="pagination-info" class="muted"></p>
+        <ul id="listing-results" class="listing-results"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Detalle del alojamiento</h2>
+        <p class="muted">Seleccionar un elemento del listado para ver su detalle.</p>
+        <div id="listing-detail"></div>
+        <h3>Actualizar detalle (requiere admin)</h3>
+        <form id="update-listing-form">
+          <label>
+            Listing ID
+            <input id="update-listing-id" type="text" required />
+          </label>
+          <label>
+            Descripción
+            <input id="update-description" type="text" placeholder="Nueva descripción" />
+          </label>
+          <label>
+            Calle
+            <input id="update-street" type="text" placeholder="Nueva calle" />
+          </label>
+          <button type="submit">Actualizar listing</button>
+        </form>
+        <pre id="update-response" class="response"></pre>
+      </section>
+
+      <section class="card">
+        <h2>Añadir reseña</h2>
+        <form id="review-form">
+          <label>
+            Listing ID
+            <input id="review-listing-id" type="text" required />
+          </label>
+          <label>
+            Nombre
+            <input id="review-name" type="text" value="usuario" required />
+          </label>
+          <label>
+            Comentario
+            <textarea id="review-comments" required>Reseña de prueba</textarea>
+          </label>
+          <button type="submit">Enviar reseña</button>
+        </form>
+        <pre id="review-response" class="response"></pre>
+      </section>
+      </div>
+    </main>
+
+    <script src="/main.js"></script>
+  </body>
+</html>

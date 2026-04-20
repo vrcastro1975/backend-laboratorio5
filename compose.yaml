@@ -1,0 +1,57 @@
+services:
+  mongo-db:
+    image: mongo:7
+    container_name: my-mongo-db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+      - ./airbnb:/opt/app/airbnb:ro
+      - ./mongo-init/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+
+  backend:
+    image: node:20
+    container_name: my-backend-api
+    working_dir: /app/backend
+    depends_on:
+      - mongo-db
+    environment:
+      - PORT=${PORT:-3000}
+      - DATA_SOURCE=${DATA_SOURCE:-mock}
+      - MONGO_URI=${MONGO_URI:-mongodb://mongo-db:27017}
+      - MONGO_DB_NAME=${MONGO_DB_NAME:-airbnb}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+    command: sh -c "npm install && npm run dev"
+
+  localstack:
+    image: localstack/localstack:3.0
+    container_name: localstack-cloud
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,sqs,ssm,dynamodb,lambda,cloudwatch,iam,sts
+      - DEBUG=0
+      - DATA_DIR=/var/lib/localstack
+    volumes:
+      - ./localstack:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: azurite-cloud
+    restart: unless-stopped
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --location /data --debug /data/debug.log
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - ./azurite:/data
+
+volumes:
+  mongo-data:

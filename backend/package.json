@@ -1,0 +1,40 @@
+{
+  "name": "laboratorio-5-cloud",
+  "version": "1.0.0",
+  "description": "Este directorio contiene la preparación inicial del laboratorio: levantar MongoDB con Docker Compose (formato moderno `compose.yaml`) y restaurar automáticamente la base de datos `airbnb` en el contenedor `my-mongo-db`, siguiendo el enunciado del módulo.",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vrcastro1975/backend-laboratorio5.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/vrcastro1975/backend-laboratorio5/issues"
+  },
+  "homepage": "https://github.com/vrcastro1975/backend-laboratorio5#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "mongodb": "^7.1.1",
+    "mongoose": "^9.4.1",
+    "supertest": "^7.2.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "@types/supertest": "^7.2.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.4"
+  }
+}
