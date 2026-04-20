@@ -2,7 +2,7 @@
 
 Este repositorio contiene la base del laboratorio 5 y el trabajo organizado por ramas.
 
-Estado actual de este documento: rama `despliegue-automatico`.
+Estado actual de este documento: se describe el trabajo hasta la rama `images-from-s3` (incluida).
 
 ## 1) Objetivo de la rama `despliegue-manual-mock`
 
@@ -392,3 +392,72 @@ Resultado esperado: mismos datos que en Atlas (sembrados con `npm run seed:atlas
 
 - Captura del blueprint aplicado o del servicio `backend-laboratorio5-automatico` en estado `Live`.
 - Salida de los `curl` anteriores (sin exponer `MONGO_URI`).
+
+## 13) Rama `images-from-s3` (consumo de portadas desde almacenamiento compatible con S3)
+
+### 13.1 Relación con el enunciado
+
+Se solicitaba crear la rama `images-from-s3` para consumir las imágenes de los alojamientos desde almacenamiento tipo **Amazon S3**. En esta implementación se utiliza la **API de S3** con el emulador **LocalStack** en local, de modo que el backend construye URLs de objeto y, si se desplegara contra **AWS S3** real, bastaría con sustituir endpoint, credenciales y bucket por los del entorno productivo, manteniendo el mismo esquema de claves de objeto.
+
+Con ello queda cubierto el objetivo pedagógico: el cliente de la API recibe en el campo `image` una URL cuyo origen es un **bucket de objetos** (no la URL externa almacenada literalmente en `photos[0]` del modelo cuando el modo S3 está activo).
+
+### 13.2 Comportamiento implementado
+
+- Si existen simultáneamente las variables de entorno `S3_BUCKET_LISTING_IMAGES` y `S3_PUBLIC_BASE_URL` (valores no vacíos), el listado y el detalle exponen la portada como  
+  `{S3_PUBLIC_BASE_URL}/{S3_BUCKET_LISTING_IMAGES}/{idDelListing}/cover.jpg`.
+- En caso contrario se conserva el comportamiento previo: se expone `photos[0]` (por ejemplo URLs de Unsplash en los datos mock o en el seed de Atlas).
+
+La URL pública debe ser resoluble desde el navegador o desde la máquina que ejecute `curl` (típicamente `http://localhost:4566` hacia LocalStack). El cliente AWS del script de sembrado y el valor por defecto de `S3_ENDPOINT_URL` en Compose apuntan al host **`localstack`** dentro de la red de Docker (`http://localstack:4566`).
+
+### 13.3 Cambios técnicos realizados en el repositorio
+
+- Dependencia `@aws-sdk/client-s3` en el backend para subir objetos desde el runner de consola.
+- Dependencia `dotenv` y carga al inicio de `backend/src/index.ts` del fichero `../.env` (raíz del laboratorio, junto a `compose.yaml`) y, si existe, `backend/.env`, de forma que un arranque con `npm run dev` desde `backend/` recoja las mismas variables que se documentan para Docker sin duplicar manualmente `export` en la terminal.
+- Módulo `backend/src/pods/listing/listing-s3-image-url.ts` con la función `resolveListingCoverImageUrl` y la lista `listingIdsForS3Seed` (IDs de mock y de los tres documentos del seed de Atlas).
+- Ajuste de `backend/src/pods/listing/listing.mappers.ts` para usar dicha resolución en los campos `image` del resumen y del detalle.
+- Runner `backend/src/console-runners/seed-s3-localstack.runner.ts` y script npm `seed:s3:localstack`, que crean el bucket si falta y suben un JPEG mínimo por cada ID de `listingIdsForS3Seed`, con clave `{id}/cover.jpg` y ACL `public-read` para permitir lectura HTTP anónima en el escenario local.
+- Variables documentadas en `.env.example` y pasadas al servicio `backend` en `compose.yaml`, con `depends_on` respecto de LocalStack.
+- Prueba en `listing.mappers.spec.ts` que valida la URL generada cuando las variables S3 están definidas.
+
+### 13.4 Procedimiento recomendado en local
+
+1. Arrancar el stack: `docker compose up -d` (LocalStack en el puerto 4566).
+2. Sembrar objetos en S3 emulado, desde el directorio `backend/` (el host debe alcanzar LocalStack en `127.0.0.1:4566`):
+
+```bash
+export S3_BUCKET_LISTING_IMAGES=lab5-listings
+export S3_ENDPOINT_URL=http://127.0.0.1:4566
+npm run seed:s3:localstack
+```
+
+3. Definir en el `.env` de la raíz del laboratorio (no versionado), al menos:
+
+```bash
+S3_BUCKET_LISTING_IMAGES=lab5-listings
+S3_PUBLIC_BASE_URL=http://localhost:4566
+```
+
+4. Reiniciar el proceso del backend tras cualquier cambio en `.env`.
+
+### 13.5 Resultado esperado frente al enunciado
+
+Tras el paso anterior, la comprobación siguiente debe devolver URLs bajo `http://localhost:4566/lab5-listings/.../cover.jpg`, no URLs de Unsplash:
+
+```bash
+curl -s "http://localhost:3000/api/listings?page=1&pageSize=2" | jq '.items[].image'
+```
+
+Ejemplo de salida coherente con lo solicitado (valores concretos dependen del bucket y del `listingId`):
+
+```text
+"http://localhost:4566/lab5-listings/mock-listing-1/cover.jpg"
+"http://localhost:4566/lab5-listings/mock-listing-2/cover.jpg"
+```
+
+Si la salida sigue mostrando `https://images.unsplash.com/...`, el proceso de Node no tenía cargadas `S3_BUCKET_LISTING_IMAGES` y `S3_PUBLIC_BASE_URL` en el momento del arranque (fichero `.env` no leído, variables no exportadas en la sesión, o contenedor no recreado tras editar `.env`). Con la carga mediante `dotenv` descrita en el apartado 13.3, basta con reiniciar el servidor desde `backend/` con el `.env` de la raíz ya configurado, o bien recrear el servicio con `docker compose up -d --force-recreate backend`.
+
+### 13.6 Evidencias sugeridas para la entrega
+
+- Captura o salida de texto del `curl` anterior mostrando URLs del bucket LocalStack.
+- Captura opcional de `curl -I` sobre una de esas URLs con código `200` y `Content-Type: image/jpeg`.
+- Referencia en la memoria a que LocalStack simula S3 y que el mismo patrón de claves sería aplicable a un bucket en AWS.

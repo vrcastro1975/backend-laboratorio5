@@ -1,3 +1,16 @@
+import { existsSync } from "fs";
+import { resolve } from "path";
+import { config as loadEnv } from "dotenv";
+
+const parentEnv = resolve(process.cwd(), "..", ".env");
+const cwdEnv = resolve(process.cwd(), ".env");
+if (existsSync(parentEnv)) {
+  loadEnv({ path: parentEnv });
+}
+if (existsSync(cwdEnv)) {
+  loadEnv({ path: cwdEnv, override: true });
+}
+
 import { createRestApiServer } from "./core/servers/rest-api.server";
 import { connectMongoose } from "./dals/mongo/mongoose.connection";
 

@@ -55,4 +55,24 @@ describe("listing.mappers", () => {
     expect(detail.latestReviews[0].id).toBe("r2");
     expect(detail.latestReviews[1].id).toBe("r1");
   });
+
+  it("usa URL de S3 para la portada cuando bucket y base pública están definidos", () => {
+    process.env.S3_BUCKET_LISTING_IMAGES = "mi-bucket";
+    process.env.S3_PUBLIC_BASE_URL = "http://localhost:4566";
+
+    try {
+      const summary = mapListingSummaryFromModelToApi(mockListing);
+      expect(summary.image).toBe(
+        "http://localhost:4566/mi-bucket/listing-99/cover.jpg"
+      );
+
+      const detail = mapListingDetailFromModelToApi(mockListing);
+      expect(detail.image).toBe(
+        "http://localhost:4566/mi-bucket/listing-99/cover.jpg"
+      );
+    } finally {
+      delete process.env.S3_BUCKET_LISTING_IMAGES;
+      delete process.env.S3_PUBLIC_BASE_URL;
+    }
+  });
 });

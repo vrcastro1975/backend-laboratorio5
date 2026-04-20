@@ -4,6 +4,7 @@ import {
   ListingReviewApiModel,
   ListingSummaryApiModel,
 } from "./listing.api-model";
+import { resolveListingCoverImageUrl } from "./listing-s3-image-url";
 
 const mapReviewFromModelToApi = (review: Review): ListingReviewApiModel => ({
   id: review._id,
@@ -17,7 +18,7 @@ export const mapListingSummaryFromModelToApi = (
 ): ListingSummaryApiModel => ({
   id: listing._id,
   name: listing.name,
-  image: listing.photos[0] ?? "",
+  image: resolveListingCoverImageUrl(listing),
   summary: listing.summary,
 });
 
@@ -26,7 +27,7 @@ export const mapListingDetailFromModelToApi = (
 ): ListingDetailApiModel => ({
   id: listing._id,
   name: listing.name,
-  image: listing.photos[0] ?? "",
+  image: resolveListingCoverImageUrl(listing),
   description: listing.description,
   address: `${listing.address.street}, ${listing.address.market}, ${listing.address.country}`,
   bedrooms: listing.bedrooms,
