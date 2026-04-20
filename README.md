@@ -1,191 +1,211 @@
 # Laboratorio 5 · Cloud
 
-Este repositorio contiene la base del laboratorio 5 y su trabajo por ramas.
+Este repositorio contiene la base del laboratorio 5 y el trabajo organizado por ramas.
 
-Estado actual: rama `despliegue-manual-mock`.
+Estado actual de este documento: rama `despliegue-manual-mock`.
 
-## Objetivo de esta rama
+## 1) Objetivo de la rama `despliegue-manual-mock`
 
-Desplegar manualmente en Render usando datos mock, sin depender de MongoDB Atlas.
+Según se desprende del enunciado, en esta rama se debe desplegar manualmente la aplicación en Render utilizando datos mock, sin depender de MongoDB Atlas.
 
-## Estructura principal
+## 2) Estructura principal del proyecto
 
-- `backend/`: API REST.
-- `frontend/`: frontend estatico servido por el backend.
+- `backend/`: API REST en Node.js + TypeScript.
+- `frontend/`: frontend estático servido por el backend.
 - `compose.yaml`: entorno local con backend, mongo, localstack y azurite.
 - `.env.example`: variables de entorno de referencia.
-- `localstack/` y `azurite/`: persistencia de simuladores cloud locales.
+- `localstack/` y `azurite/`: persistencia local de simuladores cloud.
 
-## Modo de datos
+## 3) Modo de datos
 
 La API soporta dos fuentes de datos:
 
-- `DATA_SOURCE=mock` (por defecto en esta rama): datos en memoria, no requiere Mongo.
-- `DATA_SOURCE=mongo`: usa MongoDB via Mongoose.
+- `DATA_SOURCE=mock`: datos en memoria (modo utilizado en esta rama).
+- `DATA_SOURCE=mongo`: acceso a MongoDB con Mongoose (para ramas posteriores).
 
-En esta rama, el despliegue en Render debe usar `mock`.
+Para `despliegue-manual-mock` debe utilizarse `DATA_SOURCE=mock`.
 
-## Ejecucion local (rama mock)
+## 4) Preparación local previa (recomendada)
+
+Antes de desplegar en Render, conviene comprobar que la aplicación funciona en local.
+
+### 4.1 Copiar variables de entorno
+
+Desde la raíz del laboratorio:
 
 ```bash
 cp .env.example .env
+```
+
+### 4.2 Arrancar el entorno local
+
+```bash
 docker compose up -d
 ```
 
-Comprobaciones:
+### 4.3 Validar endpoints mínimos
 
 ```bash
 curl -s "http://localhost:3000/api/health"
 curl -s "http://localhost:3000/api/listings?page=1&pageSize=2"
 ```
 
-## Despliegue manual en Render (despliegue-manual-mock)
+Resultado esperado:
 
-Si, necesitas cuenta en Render para desplegar alli.
+- `health` responde con estado `ok`.
+- `listings` devuelve elementos mock y bloque de paginación.
 
-Pasos recomendados:
-
-1. Crear un servicio **Web Service** en Render conectado a este repositorio y rama `despliegue-manual-mock`.
-2. Configurar:
-   - Runtime: `Node`
-   - Root directory: `backend`
-   - Build command: `npm install && npm run build`
-   - Start command: `npm start`
-3. Variables de entorno en Render:
-   - `PORT=10000` (o dejar el valor que Render inyecta automaticamente)
-   - `DATA_SOURCE=mock`
-4. Desplegar y comprobar:
-   - `GET /api/health`
-   - `GET /api/listings?page=1&pageSize=2`
-
-Para esta rama no hace falta configurar `MONGO_URI`.
-
-## Nota para ramas siguientes
-
-- `despliegue-manual-mongo`: aqui si se configurara MongoDB Atlas.
-- `despliegue-automatico`: despliegue automatico con los ficheros de configuracion correspondientes.
-# Laboratorio 5 · Cloud
-
-Este laboratorio parte de la base técnica del laboratorio 4 (`feature/mongoose`) y añade una capa de práctica cloud.
-
-La idea es poder trabajar en local sin necesidad de registrarse en AWS o Azure.
-
-## Estructura principal
-
-- `compose.yaml`: levanta MongoDB, backend, LocalStack y Azurite.
-- `backend/`: API REST base (heredada del laboratorio 4).
-- `frontend/`: frontend opcional de verificación rápida.
-- `airbnb/` y `mongo-init/`: restauración de base de datos de ejemplo.
-- `localstack/`: datos persistentes para simulación AWS.
-- `azurite/`: datos persistentes para simulación Azure Storage.
-- `Enunciado L5/`: enunciado oficial del laboratorio 5.
-
-## Simulación cloud local (sin cuentas reales)
-
-### LocalStack (simula AWS)
-
-Servicio en Docker:
-
-- Imagen: `localstack/localstack`
-- Puerto principal: `4566`
-- Ruta de datos: `./localstack`
-
-Servicios habilitados para práctica:
-
-- `s3`, `sqs`, `ssm`, `dynamodb`, `lambda`, `cloudwatch`, `iam`, `sts`
-
-### Azurite (simula Azure Storage)
-
-Servicio en Docker:
-
-- Imagen: `mcr.microsoft.com/azure-storage/azurite`
-- Puertos:
-  - `10000` (Blob)
-  - `10001` (Queue)
-  - `10002` (Table)
-- Ruta de datos: `./azurite`
-
-## Arranque del entorno completo
-
-Desde la raíz del laboratorio:
-
-```bash
-docker compose up -d
-```
-
-Parar todo:
-
-```bash
-docker compose down
-```
-
-Parar y limpiar volúmenes:
-
-```bash
-docker compose down -v
-```
-
-## Configuracion de credenciales y Atlas
-
-No subas nunca credenciales reales al repositorio.
-
-Flujo recomendado:
-
-1. Copiar el ejemplo a un archivo local:
-
-```bash
-cp .env.example .env
-```
-
-2. Editar `.env` con tus valores.
-
-- Para local:
-  - `MONGO_URI=mongodb://mongo-db:27017`
-- Para Atlas:
-  - `MONGO_URI=mongodb+srv://<user>:<password>@<cluster-url>/?retryWrites=true&w=majority`
-
-3. Levantar servicios:
-
-```bash
-docker compose up -d
-```
-
-Tambien puedes usar variables de entorno con `export` en lugar de `.env`.
-
-## Comprobaciones rápidas recomendadas
-
-### 1) MongoDB + backend
-
-```bash
-curl -s "http://localhost:3000/api/health"
-```
-
-### 2) LocalStack levantado
+### 4.4 Comprobar simuladores cloud locales (opcional)
 
 ```bash
 curl -s "http://localhost:4566/_localstack/health"
+curl -s "http://localhost:10000/devstoreaccount1?comp=list"
 ```
 
-### 3) Azurite levantado
+Nota: la respuesta de Azurite puede ser `400/403` sin firma/autenticación, y sigue siendo válida como prueba de servicio activo.
+
+## 5) Despliegue manual en Render (paso por paso)
+
+Se necesita una cuenta en Render y el repositorio publicado en GitHub.
+
+### 5.1 Publicar la rama en GitHub
+
+Si la rama aún no está en remoto:
 
 ```bash
-curl -s "http://127.0.0.1:10000/devstoreaccount1?comp=list"
+git push -u origin despliegue-manual-mock
 ```
 
-> Nota: la respuesta de Azurite puede ser `400/403` sin firma/autenticación, y sigue siendo válida como prueba de que el servicio está activo.
+### 5.2 Acceder a Render y crear el servicio
 
-## Verificación de réplica Lab 4 -> Lab 5
+1. Entrar en [Render](https://render.com/) e iniciar sesión.
+2. En el panel principal, pulsar `New +`.
+3. Seleccionar `Web Service`.
 
-Se replicó el contenido de `Laboratorio 4. API REST` (rama `feature/mongoose`) sobre este laboratorio sin mezclar historiales Git.
+### 5.3 Conectar el repositorio de GitHub
 
-Resultado de verificación:
+1. Si es la primera vez, autorizar Render para acceder a GitHub.
+2. Elegir la opción para seleccionar repositorio.
+3. Buscar este repositorio y pulsar `Connect`.
 
-- La estructura de archivos quedó replicada.
-- La única diferencia esperada frente a Lab 4 es `Enunciado L5/` (propio de este laboratorio).
-- Se conservaron servicios base (`mongo-db`, `backend`) y se añadieron los servicios cloud simulados (`localstack`, `azurite`).
+### 5.4 Configurar el Web Service
 
-## Referencias heredadas que conviene ajustar
+En el formulario de creación:
 
-Al venir de Lab 4, todavía hay textos identificativos con nombre de laboratorio anterior (por ejemplo en `frontend/index.html`, `backend/package.json` y algunos tests/token de auth).
+- **Name**: nombre libre, por ejemplo `laboratorio5-mock`.
+- **Region**: la más cercana.
+- **Branch**: `despliegue-manual-mock`.
+- **Runtime**: `Node`.
+- **Root Directory**: `backend`.
+- **Build Command**: `npm install && npm run build`.
+- **Start Command**: `npm start`.
 
-No rompe el funcionamiento técnico, pero sí es recomendable renombrarlo a Lab 5 para dejar el proyecto coherente antes de entregar.
+### 5.5 Configurar variables de entorno en Render
+
+En `Environment Variables`, añadir:
+
+- `DATA_SOURCE=mock`
+
+Opcional:
+
+- `PORT=10000` (Render suele inyectar el puerto automáticamente).
+
+Para esta rama no es necesario configurar `MONGO_URI`.
+
+### 5.6 Crear y lanzar el despliegue
+
+1. Pulsar `Create Web Service`.
+2. Esperar a que termine el build y el deploy.
+3. Verificar que el estado del servicio aparece como `Live`.
+
+### 5.7 Flujo real aplicado en esta práctica (GitHub + Render)
+
+Durante la práctica se siguió este flujo real de configuración:
+
+1. Se creó un `Web Service` en Render asociado al repositorio de GitHub.
+2. Se seleccionó la rama `despliegue-manual-mock`.
+3. Se eligió una instancia gratuita (`0$/month`).
+4. Se eligió la región más cercana (`Frankfurt`).
+5. En la pantalla final de configuración apareció el botón `Deploy Web Service`.
+
+Observación importante:
+
+- En algunos flujos de Render aparece previamente el botón `Connect` al repositorio.
+- En otros flujos, esa conexión ya queda resuelta antes y en la pantalla final solo aparece `Deploy Web Service`.
+- Ambos comportamientos son correctos y dependen de la interfaz mostrada por Render en ese momento.
+
+Configuración final utilizada:
+
+- **Branch**: `despliegue-manual-mock`
+- **Root Directory**: `backend`
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start`
+- **Environment Variables**: `DATA_SOURCE=mock` (y `PORT` opcional)
+
+## 6) Verificación del despliegue en Render
+
+Cuando Render genere la URL pública (por ejemplo `https://nombre-servicio.onrender.com`), comprobar:
+
+En este caso, la URL proporcionada por Render para la práctica ha sido:
+
+- `https://backend-laboratorio5.onrender.com/`
+
+```bash
+curl -s "https://TU-SERVICIO.onrender.com/api/health"
+curl -s "https://TU-SERVICIO.onrender.com/api/listings?page=1&pageSize=2"
+```
+
+Resultado esperado:
+
+- respuesta correcta en `health`,
+- listado paginado con datos mock en `listings`.
+
+## 7) Comprobaciones en caso de error
+
+Si el servicio no arranca, revisar:
+
+1. **Rama correcta**: `despliegue-manual-mock`.
+2. **Root Directory**: `backend`.
+3. **Comandos**:
+   - Build: `npm install && npm run build`
+   - Start: `npm start`
+4. **Variables**:
+   - `DATA_SOURCE=mock`
+5. **Logs en Render**:
+   - revisar `Logs` para detectar errores de build o arranque.
+6. **Error frecuente detectado en esta práctica**:
+   - si se configura `npm install npm run build` (sin `&&`), Render no ejecuta la compilación correctamente.
+   - debe configurarse exactamente `npm install && npm run build`.
+   - síntoma típico: error en arranque por ausencia de `dist/index.js`.
+
+## 8) Evidencias recomendadas para entrega
+
+Para documentar la práctica, conviene adjuntar:
+
+- captura del servicio en estado `Live`,
+- captura de variables de entorno (sin secretos),
+- salida de `GET /api/health`,
+- salida de `GET /api/listings?page=1&pageSize=2`.
+
+## 9) Gestión del servicio en Render tras la entrega
+
+Como práctica de seguimiento, el servicio puede mantenerse activo hasta recibir revisión/corrección del profesor.
+
+Si se necesita eliminar el despliegue:
+
+1. Entrar en [Render Dashboard](https://dashboard.render.com/).
+2. Abrir el servicio desplegado.
+3. Ir a `Settings`.
+4. Bajar a `Danger Zone`.
+5. Pulsar `Delete Service`.
+6. Confirmar la eliminación cuando Render lo solicite.
+
+Nota:
+
+- El borrado elimina URL pública, historial de despliegues y configuración del servicio.
+- Si se prevé una revisión próxima, conviene mantener el servicio activo y eliminarlo al finalizar la corrección.
+
+## 10) Continuidad en ramas siguientes
+
+- `despliegue-manual-mongo`: configuración de MongoDB Atlas y conexión desde Render.
+- `despliegue-automatico`: preparación de despliegue automático.
