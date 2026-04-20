@@ -288,16 +288,23 @@ Seed de Atlas completado. Insertados 3 documentos en 'airbnb'.
 
 En Render, crear un `Web Service` nuevo con:
 
+- **Name** (ejemplo de esta práctica): `backend-laboratorio5-mongoatlas` (nombre distinto del servicio mock para no confundirlos).
 - **Branch**: `despliegue-manual-mongo`
 - **Root Directory**: `backend`
 - **Build Command**: `npm install && npm run build`
 - **Start Command**: `npm start`
 
-Variables de entorno:
+Nota sobre la rama en el desplegable de Render:
+
+- Si la rama `despliegue-manual-mongo` no aparece, hay que hacer `git push` al remoto y refrescar la página de Render hasta que GitHub la exponga.
+
+Variables de entorno en Render (obligatorio definirlas en el panel; el `.env` local no las aplica al contenedor de Render):
 
 - `DATA_SOURCE=mongo`
 - `MONGO_URI=<uri-atlas>`
 - `MONGO_DB_NAME=airbnb`
+
+Se puede usar la opción `Add from .env` en Render para pegar el bloque de variables (sin subir el fichero `.env` al repositorio).
 
 Opcional:
 
@@ -305,17 +312,23 @@ Opcional:
 
 ### 11.5 Verificación funcional
 
-Comprobar en la URL pública del nuevo servicio:
+En esta práctica, la URL pública del servicio Render para esta rama ha sido:
+
+- `https://backend-laboratorio5-mongoatlas.onrender.com/`
+
+Comprobaciones recomendadas:
 
 ```bash
-curl -s "https://TU-SERVICIO-MONGO.onrender.com/api/health"
-curl -s "https://TU-SERVICIO-MONGO.onrender.com/api/listings?page=1&pageSize=5"
+curl -s "https://backend-laboratorio5-mongoatlas.onrender.com/api/health"
+curl -s "https://backend-laboratorio5-mongoatlas.onrender.com/api/listings?page=1&pageSize=5"
 ```
 
 Resultado esperado:
 
 - respuesta correcta en `health`,
 - respuesta de `listings` con los datos insertados en Atlas por el runner.
+
+Evidencia para entrega: captura de pantalla del servicio en estado `Live` (por ejemplo `Captura de pantalla rama mongo atlas manual.png` en la raíz del laboratorio, versionada junto al resto del proyecto).
 
 ### 11.6 Checklist operativo recomendado
 
