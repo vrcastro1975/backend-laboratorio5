@@ -375,11 +375,15 @@ Referencia oficial: [Blueprint YAML (Render)](https://render.com/docs/blueprint-
 
 ### 12.3 Verificación
 
-Sustituir `TU-SERVICIO-AUTOMATICO` por la URL que asigne Render (dominio `onrender.com`):
+En esta práctica, la URL pública del servicio creado por el blueprint ha sido:
+
+- `https://backend-laboratorio5-automatico.onrender.com/`
+
+Comprobaciones recomendadas:
 
 ```bash
-curl -s "https://TU-SERVICIO-AUTOMATICO.onrender.com/api/health"
-curl -s "https://TU-SERVICIO-AUTOMATICO.onrender.com/api/listings?page=1&pageSize=5"
+curl -s "https://backend-laboratorio5-automatico.onrender.com/api/health"
+curl -s "https://backend-laboratorio5-automatico.onrender.com/api/listings?page=1&pageSize=5"
 ```
 
 Resultado esperado: mismos datos que en Atlas (sembrados con `npm run seed:atlas` en la rama anterior), no datos mock.
