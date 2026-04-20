@@ -1,0 +1,58 @@
+# CI en la rama despliegue-aws-automatico: LocalStack (AWS emulado, p. ej. S3) en Docker
+# en el runner de GitHub Actions + compilación y tests del backend.
+# No requiere cuenta AWS ni claves de acceso reales.
+
+name: AWS (LocalStack) — CI con Docker
+
+on:
+  push:
+    branches:
+      - despliegue-aws-automatico
+  pull_request:
+    branches:
+      - despliegue-aws-automatico
+  workflow_dispatch:
+
+concurrency:
+  group: aws-localstack-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  localstack-and-backend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: LocalStack vía docker compose (misma definición que en local)
+        run: |
+          docker compose up -d localstack
+          for i in $(seq 1 45); do
+            h=$(curl -sf "http://127.0.0.1:4566/_localstack/health" || true)
+            if echo "$h" | grep -qE '"s3"[[:space:]]*:[[:space:]]*"(available|running)"'; then
+              echo "LocalStack S3 listo (health)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "LocalStack no respondió a tiempo"; docker compose logs localstack; exit 1
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Backend — instalar, compilar y tests
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+          npm test

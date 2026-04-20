@@ -2,7 +2,7 @@
 
 Este repositorio contiene la base del laboratorio 5 y el trabajo organizado por ramas.
 
-Estado actual de este documento: se describe el trabajo hasta la rama `despliegue-azure-automatico` (incluida).
+Estado actual de este documento: se describe el trabajo hasta la rama `despliegue-aws-automatico` (incluida).
 
 ## 1) Objetivo de la rama `despliegue-manual-mock`
 
@@ -14,7 +14,7 @@ Según se desprende del enunciado, en esta rama se debe desplegar manualmente la
 - `frontend/`: frontend estático servido por el backend.
 - `compose.yaml`: entorno local con backend, mongo, localstack y azurite.
 - `render.yaml`: definición Blueprint de Render para la rama `despliegue-automatico`.
-- `.github/workflows/azure-azurite-ci.yml`: pipeline en GitHub Actions (Azurite en Docker + build y tests del backend) para la rama `despliegue-azure-automatico`.
+- `.github/workflows/aws-localstack-ci.yml`: pipeline en GitHub Actions (LocalStack en Docker + build y tests del backend) para la rama `despliegue-aws-automatico`.
 - `.env.example`: variables de entorno de referencia.
 - `localstack/` y `azurite/`: persistencia local de simuladores cloud.
 
@@ -210,6 +210,8 @@ Nota:
 ## 10) Continuidad en ramas siguientes
 
 - `despliegue-automatico`: despliegue automático con Blueprint (`render.yaml`). Ver sección 12.
+- `despliegue-azure-automatico`: opción Azure Storage en local (Azurite) + pipeline documentada en esa rama.
+- `despliegue-aws-automatico`: opción AWS en local (LocalStack) + pipeline. Ver sección 14.
 
 ## 11) Rama `despliegue-manual-mongo` (Atlas + Render)
 
@@ -463,60 +465,61 @@ Si la salida sigue mostrando `https://images.unsplash.com/...`, el proceso de No
 - Captura opcional de `curl -I` sobre una de esas URLs con código `200` y `Content-Type: image/jpeg`.
 - Referencia en la memoria a que LocalStack simula S3 y que el mismo patrón de claves sería aplicable a un bucket en AWS.
 
-## 14) Rama `despliegue-azure-automatico` (Azurite: emulador local de Azure Storage)
+## 14) Rama `despliegue-aws-automatico` (LocalStack: emulador local de AWS)
 
 ### 14.1 Objetivo y alcance
 
-En el laboratorio, la vertiente asociada a **Microsoft Azure** se aborda mediante **Azurite**, el emulador oficial de **Azure Storage** (API de blobs, colas y tablas) ejecutado en local con Docker. No se utiliza suscripción en la nube de Azure ni despliegue en **Azure App Service**; Azurite **no** sustituye a un servicio de alojamiento de la API, sino que ofrece el mismo tipo de endpoint y contrato que Azure Storage para pruebas sin coste de plataforma.
+En el laboratorio, la vertiente asociada a **Amazon Web Services (AWS)** se aborda mediante **LocalStack**, emulador de numerosos servicios de AWS (entre ellos **S3**) ejecutado en local con Docker. No se utiliza cuenta AWS de pago ni despliegue en **EC2**, **ECS** ni **Elastic Beanstalk**; LocalStack **no** sustituye a un servicio de alojamiento de la API, sino que expone APIs compatibles con AWS para pruebas sin credenciales reales.
 
-Esta rama documenta ese alcance y mantiene alineado el repositorio con el `compose.yaml` ya existente, donde el servicio `azurite` escucha en los puertos **10000** (blob), **10001** (cola) y **10002** (tabla).
+Esta rama documenta ese alcance y se alinea con el `compose.yaml`, donde el servicio **`localstack`** expone el endpoint único en el puerto **4566** (incluye S3 y otros servicios habilitados por la variable `SERVICES` del contenedor).
 
 ### 14.2 Arranque del emulador
 
 Desde la raíz del laboratorio:
 
 ```bash
-docker compose up -d azurite
+docker compose up -d localstack
 ```
 
 O, para levantar todo el stack (Mongo, backend, LocalStack y Azurite): `docker compose up -d`.
 
-Los datos persistentes del emulador se guardan bajo el directorio `azurite/` (persistencia local; no versionar credenciales ni datos sensibles en Git).
+Los datos persistentes de LocalStack se guardan bajo el directorio `localstack/` (persistencia local; no versionar secretos ni volúmenes de datos sensibles en Git).
 
 ### 14.3 Comprobación de que el servicio responde
 
+Salud del proceso (incluye estado de servicios como S3):
+
 ```bash
-curl -s "http://localhost:10000/devstoreaccount1?comp=list"
+curl -s "http://localhost:4566/_localstack/health"
 ```
 
-Una respuesta `400` o `403` sin firma ni contenedor es habitual y **sigue indicando** que Azurite está activo (véase también el apartado 4.4).
+En el JSON devuelto, el servicio **`s3`** debe figurar como **`running`** o **`available`** cuando LocalStack ha terminado de arrancar (véase también el apartado 4.4 para la comprobación rápida del stack).
 
 ### 14.4 Relación con el resto del laboratorio
 
-- **LocalStack** cubre la API compatible con **Amazon S3** en local (rama `images-from-s3`).
-- **Azurite** cubre la API de **Azure Storage** en local en esta rama.
-- El despliegue público de la API en **Render** (ramas anteriores) permanece independiente de ambos emuladores.
+- La rama **`images-from-s3`** describe el **consumo** de portadas vía URLs de objeto S3 emulado (variables, mappers, `seed:s3:localstack`).
+- Esta rama **`despliegue-aws-automatico`** centra la opción **“AWS + Docker + automatización”** en **LocalStack dentro de `compose.yaml`** y en la **pipeline** de GitHub Actions (apartado 14.5).
+- **Azurite** sigue definido en el mismo `compose.yaml` para la vertiente **Azure Storage** documentada en la rama **`despliegue-azure-automatico`** (repositorio en esa rama).
+- El despliegue público de la API en **Render** permanece independiente de LocalStack y Azurite.
 
-### 14.5 Pipeline automática (GitHub Actions + Docker, sin nube Azure)
+### 14.5 Pipeline automática (GitHub Actions + Docker, sin nube AWS)
 
-El fichero **`.github/workflows/azure-azurite-ci.yml`** define integración continua para la rama **`despliegue-azure-automatico`**. Disparadores: **`push`**, **`pull_request`** contra esa rama y **`workflow_dispatch`** (ejecución manual desde la pestaña *Actions* de GitHub).
+El fichero **`.github/workflows/aws-localstack-ci.yml`** define integración continua para la rama **`despliegue-aws-automatico`**. Disparadores: **`push`**, **`pull_request`** contra esa rama y **`workflow_dispatch`** (ejecución manual desde la pestaña *Actions* de GitHub).
 
 #### 14.5.1 Qué hace el workflow, en orden
 
-1. **`docker compose up -d azurite`** en la raíz del repositorio: se usa la **misma definición** que en el apartado 14.2 (`compose.yaml`, servicio `azurite`), no un `docker run` paralelo con otra receta.
-2. Comprobación con **`curl`** contra el endpoint de **blob** en **`127.0.0.1:10000`** (`devstoreaccount1?comp=list`). Respuestas **`400`** o **`403`** sin autenticación cuentan como servicio activo (mismo criterio que en 4.4 y 14.3).
+1. **`docker compose up -d localstack`** en la raíz del repositorio: misma definición que en el apartado 14.2 (`compose.yaml`, servicio `localstack`).
+2. Espera activa consultando **`http://127.0.0.1:4566/_localstack/health`** hasta que el JSON indique **`s3`** en estado **`running`** o **`available`**.
 3. En **`backend/`**: **`npm ci`**, **`npm run build`** y **`npm test`**.
 
-No se declaran secretos de Microsoft Azure. El alcance es **CI** sobre el emulador **Azure Storage** en Docker, no publicación en App Service ni otra nube de Azure.
+No se declaran secretos ni claves de **AWS**. El alcance es **CI** sobre el emulador **LocalStack** en Docker, no publicación de la API en una cuenta AWS.
 
-#### 14.5.2 Por qué en GitHub Actions se vuelve a levantar Azurite si ya existe en `compose.yaml`
+#### 14.5.2 Por qué en GitHub Actions se vuelve a levantar LocalStack si ya existe en `compose.yaml`
 
-En la máquina del desarrollador, **Azurite ya forma parte del stack** definido en `compose.yaml`; basta con `docker compose up -d` (o solo el servicio `azurite`) para tenerlo en local.
+En la máquina del desarrollador, **LocalStack ya forma parte del stack** definido en `compose.yaml`; basta con `docker compose up -d` (o solo el servicio `localstack`) para tenerlo en local.
 
-Un **runner de GitHub Actions** es otra cosa: una máquina virtual **nueva y vacía** en cada ejecución, **sin** los contenedores que el alumno tenga corriendo en su portátil. El workflow **no puede** “reutilizar” el Azurite del ordenador local; tiene que **arrancar de nuevo** el servicio en ese entorno para poder comprobar el endpoint y ejecutar los pasos de Node.
+Un **runner de GitHub Actions** es una máquina virtual **nueva en cada ejecución**, sin los contenedores del portátil. El workflow **reproduce** ahí el servicio `localstack` mediante **`docker compose up -d localstack`**, sin duplicar imagen ni argumentos fuera del `compose.yaml`.
 
-Por tanto no hay dos Azurites compitiendo en el mismo sitio: uno es el del **desarrollo local** (compose en el PC), otro es el del **job de CI** (compose en el runner, efímero). La pipeline usa **`docker compose up -d azurite`** precisamente para **no duplicar** imagen, puertos ni comando en un script distinto al `compose.yaml`.
+#### 14.5.3 Lectura frente al enunciado (“despliegue AWS + Docker”)
 
-#### 14.5.3 Lectura frente al enunciado (“despliegue Azure + Docker”)
-
-Con esta rama se documenta y automatiza la parte **Azure** del laboratorio como **Azure Storage emulado (Azurite) + Docker**, más una **pipeline** que lo valida junto al build del backend. Eso encaja con una interpretación del enunciado en la que **“despliegue automático”** equivale a **integración continua** y **“Azure”** al **contrato de Azure Storage** vía Azurite, **no** a una suscripción obligatoria ni a despliegue de la API en la nube de Microsoft.
+Con esta rama se documenta y automatiza la parte **AWS** del laboratorio como **servicios emulados (LocalStack) + Docker**, más una **pipeline** que valida el arranque de S3 en LocalStack y el build del backend. **“Despliegue automático”** se interpreta aquí como **integración continua**; **“AWS”** como el **contrato de APIs AWS** (en la práctica, comprobación de **S3** vía `_localstack/health`) vía LocalStack, **no** como despliegue obligatorio de la API en la nube de Amazon.
