@@ -3,6 +3,9 @@
 !.gitignore
 !.env.example
 !README.md
+!.github/
+!.github/**
+
 !render.yaml
 !compose.yaml
 !restore-airbnb-backup.sh
@@ -16,6 +19,9 @@
 
 !backend/
 !backend/**
+
+# Copia temporal del frontend para artefactos de despliegue (no versionar)
+backend/frontend/
 
 !frontend/
 !frontend/**

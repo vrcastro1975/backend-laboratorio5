@@ -1,0 +1,58 @@
+# CI en la rama despliegue-azure-automatico: Azurite (Azure Storage emulado) en Docker
+# en el runner de GitHub Actions + compilación y tests del backend.
+# No requiere suscripción Microsoft ni secretos de publicación.
+
+name: Azure Storage (Azurite) — CI con Docker
+
+on:
+  push:
+    branches:
+      - despliegue-azure-automatico
+  pull_request:
+    branches:
+      - despliegue-azure-automatico
+  workflow_dispatch:
+
+concurrency:
+  group: azure-azurite-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  azurite-and-backend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azurite con docker compose (misma definición que en local)
+        run: |
+          docker compose up -d azurite
+          for i in $(seq 1 15); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:10000/devstoreaccount1?comp=list" || echo "000")
+            if [ "$code" != "000" ] && [ "$code" != "" ]; then
+              echo "Azurite blob endpoint respondió HTTP $code"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Azurite no respondió a tiempo"; docker compose logs azurite; exit 1
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Backend — instalar, compilar y tests
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+          npm test

@@ -1,12 +1,21 @@
+import { existsSync } from "node:fs";
 import cors from "cors";
 import express from "express";
 import path from "node:path";
 import { authApi, loginHandler } from "../../pods/auth/auth.api";
 import { listingApi } from "../../pods/listing/listing.api";
 
+const resolveFrontendPath = () => {
+  const bundled = path.join(process.cwd(), "frontend");
+  if (existsSync(bundled)) {
+    return bundled;
+  }
+  return path.resolve(process.cwd(), "..", "frontend");
+};
+
 export const createRestApiServer = () => {
   const app = express();
-  const frontendPath = path.resolve(process.cwd(), "../frontend");
+  const frontendPath = resolveFrontendPath();
 
   app.use(cors());
   app.use(express.json());
